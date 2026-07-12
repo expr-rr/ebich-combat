@@ -3,21 +3,23 @@ import os
 import json
 import uvicorn
 import hashlib
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# УБЕДИСЬ, ЧТО ЭТО ССЫЛКА POOLER (ПОРТ 6543)
-DB_URI = "postgresql://postgres.rraadyircdxqizpbdihv:4FXrzTNyMn2gBAoL@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
+# ТВОЯ ССЫЛКА ОТ NEON.TECH
+DB_URI = "postgresql://neondb_owner:npg_bYj1tnSH8XBg@ep-billowing-pine-ahbzqlq1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def get_hash(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Настройка раздачи картинок
 current_dir = os.path.dirname(os.path.realpath(__file__))
-if os.path.exists(os.path.join(current_dir, "images")):
-    app.mount("/images", StaticFiles(directory=os.path.join(current_dir, "images")), name="images")
+images_path = os.path.join(current_dir, "images")
+if os.path.exists(images_path):
+    app.mount("/images", StaticFiles(directory=images_path), name="images")
 
 @app.get("/")
 async def read_index():
@@ -35,16 +37,17 @@ async def register(request: Request):
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
         
-        # Пытаемся вставить данные
+        # Проверяем ник
+        cursor.execute('SELECT username FROM users WHERE username = %s', (name,))
+        if cursor.fetchone():
+            return {"status": "error", "message": "Ник уже занят"}
+
         cursor.execute('INSERT INTO users (username, password_hash) VALUES (%s, %s)', (name, pw))
         conn.commit()
-        cursor.close()
-        return {"status": "success", "message": "Аккаунт создан! Теперь жми ВОЙТИ"}
-    except psycopg2.errors.UniqueViolation:
-        return {"status": "error", "message": "Этот ник уже занят. Нажми ВОЙТИ"}
+        return {"status": "success", "message": "Аккаунт создан! Жми ВОЙТИ"}
     except Exception as e:
-        print(f"!!! REAL REGISTER ERROR: {e}") # ЭТО ПОЯВИТСЯ В ЛОГАХ RENDER
-        return {"status": "error", "message": f"Ошибка базы: {str(e)}"}
+        print(f"REG ERROR: {e}")
+        return {"status": "error", "message": "Ошибка базы"}
     finally:
         if conn: conn.close()
 
@@ -60,7 +63,6 @@ async def login(request: Request):
         cursor = conn.cursor()
         cursor.execute('SELECT username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data FROM users WHERE username = %s AND password_hash = %s', (name, pw))
         row = cursor.fetchone()
-        cursor.close()
         
         if row:
             return {
@@ -73,8 +75,8 @@ async def login(request: Request):
             }
         return {"status": "error", "message": "Неверный ник или пароль"}
     except Exception as e:
-        print(f"!!! LOGIN ERROR: {e}")
-        return {"status": "error", "message": "Ошибка сервера"}
+        print(f"LOGIN ERROR: {e}")
+        return {"status": "error", "message": "Ошибка входа"}
     finally:
         if conn: conn.close()
 
@@ -94,9 +96,8 @@ async def save_game(request: Request):
               data['prestige'], data['grand'], data['c_prest_current'], 
               json.dumps(data['shop']), data['username']))
         conn.commit()
-        cursor.close()
     except Exception as e:
-        print(f"!!! SAVE ERROR: {e}")
+        print(f"SAVE ERROR: {e}")
     finally:
         if conn: conn.close()
     return {"status": "ok"}
@@ -109,7 +110,6 @@ async def leaderboard():
         cursor = conn.cursor()
         cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
         rows = cursor.fetchall()
-        cursor.close()
         return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
     except:
         return []
