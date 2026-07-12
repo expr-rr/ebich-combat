@@ -36,21 +36,12 @@
         <!-- СТАТИСТИКА -->
         <div class="grid grid-cols-4 gap-1 mb-6 h-16">
             <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Клик</div>
-                <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter">0</div>
+                <div class="text-[7px] text-gray-500 uppercase font-bold text-center">Клик</div>
+                <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter text-center">0</div>
             </div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Буст</div>
-                <div id="ui-mult" class="text-[9px] text-orange-400 font-bold tracking-tighter">x1</div>
-            </div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Престиж</div>
-                <div id="ui-prestige" class="text-[9px] text-purple-400 font-bold tracking-tighter">0</div>
-            </div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Гранд</div>
-                <div id="ui-grand" class="text-[9px] text-red-400 font-bold tracking-tighter">#0</div>
-            </div>
+            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-orange-400 text-[9px]" id="ui-mult">x1</div>
+            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-purple-400 text-[9px]" id="ui-prestige">0</div>
+            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-red-400 text-[9px]" id="ui-grand">#0</div>
         </div>
 
         <!-- ЭКРАНЫ -->
@@ -167,7 +158,7 @@
         }
 
         function format(val) {
-            const s = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp"];
+            const s = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
             if (val < 1000) return Math.floor(val);
             const exp = Math.floor(Math.log10(val) / 3);
             const index = Math.min(exp, s.length - 1);
@@ -213,7 +204,7 @@
                 item.cost *= item.growth;
                 updateUI();
                 saveToServer();
-                tg.HapticFeedback.notificationOccurred('success');
+                tg.HapticFeedback.impactOccurred('medium');
             }
         }
 
@@ -240,9 +231,9 @@
             if (state.coins >= state.c_prest_current) {
                 state.coins = 0; 
                 state.tapPower = 1; 
-                state.multiplier *= 2.0;
+                state.multiplier *= 2.0; // Доход удваивается
                 state.prestige += 1; 
-                state.c_prest_current *= 6;
+                state.c_prest_current *= 6.0; // Цена растет в 6 раз
                 state.shop = JSON.parse(JSON.stringify(defaultShop));
                 showTab('game'); 
                 updateUI(); 
@@ -256,21 +247,21 @@
             if (state.coins >= grandCost) {
                 state.grand += 1; 
                 
-                // --- МНОЖИТЕЛЬ х10 ---
-                state.multiplier = Math.pow(10.0, state.grand); 
+                // --- МНОЖИТЕЛЬ ДОХОДА х2 (относительно базы) ---
+                state.multiplier = Math.pow(2.0, state.grand); 
                 
+                // --- МНОЖИТЕЛЬ ЦЕНЫ х6 (базовая стоимость новой эры) ---
+                state.c_prest_current = 100000 * Math.pow(6.0, state.grand); 
+
                 state.coins = 0; 
                 state.tapPower = 1; 
                 state.prestige = 0;
-                state.c_prest_current = 100000 * Math.pow(2.0, state.grand);
                 state.shop = JSON.parse(JSON.stringify(defaultShop));
                 
                 showTab('game'); 
                 updateUI(); 
                 saveToServer();
-                
                 tg.HapticFeedback.notificationOccurred('error');
-                alert("ГРАНД-РЕСЕТ! Множитель теперь x" + format(state.multiplier));
             }
         }
 
