@@ -10,76 +10,88 @@
         .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         .floating-text { position: absolute; pointer-events: none; animation: floatUp 0.8s ease-out forwards; font-weight: 900; z-index: 50; }
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-200px); opacity: 0; } }
+        .active-scale:active { transform: scale(0.95); }
         .tab-btn-active { background: rgba(255, 255, 255, 0.1); color: #fff; }
     </style>
 </head>
 <body>
 
     <!-- ЭКРАН ВХОДА -->
-    <div id="auth-screen" class="fixed inset-0 z-[100] bg-[#02040a] flex flex-col items-center justify-center p-6">
+    <div id="auth-screen" class="fixed inset-0 z-[100] bg-[#02040a] flex flex-col items-center justify-center p-6 text-center">
         <h1 class="text-4xl font-black italic mb-8 tracking-tighter text-blue-500 uppercase">ЁБЫЧ КОМБАТ</h1>
         <div class="glass w-full max-w-sm p-8 rounded-[40px] space-y-4 shadow-2xl border-blue-500/20">
-            <input id="auth-user" type="text" placeholder="Придумайте ник" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none">
-            <input id="auth-pass" type="password" placeholder="Пароль" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none">
-            <button onclick="handleAuth('login')" class="w-full bg-blue-600 p-4 rounded-2xl font-black active:scale-95 transition-all uppercase">Войти</button>
-            <button onclick="handleAuth('register')" class="w-full text-white/30 text-[10px] font-bold uppercase tracking-widest">Создать новый аккаунт</button>
-            <p id="auth-error" class="text-red-500 text-[10px] text-center hidden font-bold"></p>
+            <h2 class="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">Авторизация</h2>
+            <input id="auth-user" type="text" placeholder="Никнейм" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none text-center">
+            <input id="auth-pass" type="password" placeholder="Пароль" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none text-center">
+            
+            <div class="pt-4 space-y-3">
+                <button onclick="handleAuth('login')" class="w-full bg-blue-600 p-4 rounded-2xl font-black active:scale-95 transition-all uppercase">Войти</button>
+                <button onclick="handleAuth('register')" class="w-full text-white/30 text-[10px] font-bold uppercase tracking-widest">Создать новый аккаунт</button>
+            </div>
+            <p id="auth-error" class="text-red-500 text-[10px] hidden font-bold"></p>
         </div>
     </div>
 
     <!-- ИГРОВОЙ КОНТЕНТ -->
     <div id="game-content" class="hidden h-screen flex flex-col p-4 pb-24">
+        
         <!-- СТАТИСТИКА -->
         <div class="grid grid-cols-4 gap-1 mb-6 h-16">
             <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase">Клик</div>
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Клик</div>
                 <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter"></div>
             </div>
             <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase">Буст</div>
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Буст</div>
                 <div id="ui-mult" class="text-[9px] text-orange-400 font-bold tracking-tighter"></div>
             </div>
             <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase">Престиж</div>
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Престиж</div>
                 <div id="ui-prestige" class="text-[9px] text-purple-400 font-bold tracking-tighter"></div>
             </div>
             <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase">Гранд</div>
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Гранд</div>
                 <div id="ui-grand" class="text-[9px] text-red-400 font-bold tracking-tighter"></div>
             </div>
         </div>
 
+        <!-- 1. ГЛАВНЫЙ ЭКРАН -->
         <div id="screen-game" class="flex-1 flex flex-col items-center justify-between py-8">
-            <div id="balance" class="text-5xl font-black italic drop-shadow-xl text-white">0</div>
-            <div id="hero-btn" class="w-64 h-64 rounded-full glass border-4 border-white/10 flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.2)] active:scale-95 transition-transform">
+            <div id="balance" class="text-5xl font-black italic">0</div>
+            <div id="hero-btn" class="w-64 h-64 rounded-full glass border-4 border-white/10 flex items-center justify-center overflow-hidden active:scale shadow-[0_0_50px_rgba(59,130,246,0.2)]">
                 <img id="hero-img" src="/images/hero1.png" class="w-full h-full object-cover">
             </div>
             <div id="display-name" class="text-white/10 font-black tracking-[10px] text-[10px] uppercase">ИГРОК</div>
         </div>
 
-        <div id="screen-shop" class="hidden flex-1 overflow-y-auto px-2 space-y-3 pb-4">
-            <h2 class="text-center text-xl font-black mb-4 uppercase">Рынок</h2>
-            <div id="shop-list" class="space-y-3"></div>
+        <!-- 2. РЫНОК (SHOP) -->
+        <div id="screen-shop" class="hidden flex-1 overflow-y-auto px-2 space-y-3 pb-6">
+            <h2 class="text-center text-xl font-black mb-4 uppercase italic">Рынок</h2>
+            <div id="shop-list" class="space-y-3">
+                <!-- Карточки товаров генерируются через JS -->
+            </div>
         </div>
 
+        <!-- 3. ПРЕСТИЖ -->
         <div id="screen-prestige" class="hidden flex-1 flex flex-col items-center px-6 pt-4">
             <h2 class="text-center text-xl font-black mb-4 uppercase text-purple-500 italic">Престиж</h2>
             <img id="prestige-hero-img" src="/images/hero1.png" class="w-40 h-40 rounded-full border-4 border-purple-500 mb-8 shadow-xl shadow-purple-500/20">
             <div id="prestige-action-container" class="w-full"></div>
         </div>
 
+        <!-- 4. ЛИДЕРЫ -->
         <div id="screen-leaders" class="hidden flex-1 flex flex-col px-2">
             <h2 class="text-center text-xl font-black mb-4 uppercase text-cyan-400 italic font-black">Лидеры</h2>
             <div id="leader-list" class="space-y-2 overflow-y-auto"></div>
         </div>
 
-        <!-- ТАБ-БАР -->
+        <!-- МЕНЮ -->
         <div class="fixed bottom-6 left-0 right-0 flex justify-center z-50">
             <div class="glass rounded-full p-1 flex w-[95%] h-14">
-                <button onclick="showTab('game')" class="tab-btn flex-1 rounded-full font-black text-[9px] tab-btn-active uppercase">Игра</button>
-                <button onclick="showTab('shop')" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Рынок</button>
-                <button onclick="showTab('prestige')" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Престиж</button>
-                <button onclick="showTab('leaders')" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Лидеры</button>
+                <button onclick="showTab('game', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] tab-btn-active uppercase">Игра</button>
+                <button onclick="showTab('shop', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Рынок</button>
+                <button onclick="showTab('prestige', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Престиж</button>
+                <button onclick="showTab('leaders', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Лидеры</button>
             </div>
         </div>
     </div>
@@ -88,6 +100,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        let isLoaded = false;
         let state = {
             username: "", coins: 0, tapPower: 1, multiplier: 1, prestige: 0, grand: 0, c_prest_current: 100000,
             shop: [
@@ -101,11 +114,17 @@
             ]
         };
 
-        // --- ФУНКЦИИ АВТОРИЗАЦИИ ---
+        // --- АВТОРИЗАЦИЯ ---
         async function handleAuth(type) {
-            const user = document.getElementById('auth-user').value;
-            const pass = document.getElementById('auth-pass').value;
+            const user = document.getElementById('auth-user').value.trim();
+            const pass = document.getElementById('auth-pass').value.trim();
             const error = document.getElementById('auth-error');
+
+            if (!user || !pass) {
+                error.innerText = "Заполни все поля!";
+                error.classList.remove('hidden');
+                return;
+            }
 
             const res = await fetch(`/api/${type}`, {
                 method: 'POST',
@@ -120,19 +139,23 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('game-content').classList.remove('hidden');
                     document.getElementById('display-name').innerText = state.username;
+                    isLoaded = true;
                     updateUI();
-                    setInterval(saveToServer, 10000);
+                    setInterval(saveToServer, 5000);
                 } else {
-                    alert("Успешно! Теперь нажми ВОЙТИ.");
+                    error.innerText = resData.message;
+                    error.classList.remove('hidden');
+                    error.style.color = "#4ade80";
                 }
             } else {
                 error.innerText = resData.message;
                 error.classList.remove('hidden');
+                error.style.color = "#ef4444";
             }
         }
 
         async function saveToServer() {
-            if (!state.username) return;
+            if (!isLoaded) return;
             fetch('/api/save', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -140,12 +163,13 @@
             });
         }
 
-        // --- ЛОГИКА ИГРЫ (Swift Clone) ---
+        // --- ЛОГИКА ИГРЫ ---
         function format(val) {
             const s = ["", "K", "M", "B", "T", "Qa", "Qi"];
             if (val < 1000) return Math.floor(val);
             const exp = Math.floor(Math.log10(val) / 3);
-            return (val / Math.pow(1000, exp)).toFixed(1) + s[exp];
+            const index = Math.min(exp, s.length - 1);
+            return (val / Math.pow(1000, index)).toFixed(1) + s[index];
         }
 
         function updateUI() {
@@ -160,6 +184,7 @@
             const heroPath = `/images/hero${imgIdx}.png`;
             document.getElementById('hero-img').src = heroPath;
             document.getElementById('prestige-hero-img').src = heroPath;
+
             renderShop();
             renderPrestige();
         }
@@ -181,6 +206,7 @@
             setTimeout(() => el.remove(), 800);
         }
 
+        // --- РЫНОК (SHOP) ---
         function renderShop() {
             const list = document.getElementById('shop-list');
             list.innerHTML = state.shop.map(item => `
@@ -202,23 +228,25 @@
                 item.cost *= item.growth;
                 updateUI();
                 saveToServer();
+                tg.HapticFeedback.notificationOccurred('success');
             }
         }
 
+        // --- ПРЕСТИЖ ---
         function renderPrestige() {
             const container = document.getElementById('prestige-action-container');
             if (state.prestige < 7) {
                 const canAfford = state.coins >= state.c_prest_current;
                 container.innerHTML = `<button onclick="doPrestige()" class="w-full py-5 rounded-3xl glass border-purple-500/30 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
                     <span class="text-purple-400 font-black tracking-widest text-lg italic uppercase">Престиж LVL ${state.prestige + 1}</span>
-                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic">Цена: ${format(state.c_prest_current)}</span>
+                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold">Цена: ${format(state.c_prest_current)}</span>
                 </button>`;
             } else {
                 const grandCost = (state.c_prest_current / 6) * 2;
                 const canAfford = state.coins >= grandCost;
                 container.innerHTML = `<button onclick="doGrandReset()" class="w-full py-5 rounded-3xl glass border-red-500/50 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
-                    <span class="text-red-500 font-black tracking-widest text-lg italic uppercase">ГРАНД-РЕСЕТ 🌀</span>
-                    <span class="text-[10px] text-white/30 mt-1 uppercase italic">Цена: ${format(grandCost)}</span>
+                    <span class="text-red-500 font-black tracking-widest text-lg italic uppercase text-center">ГРАНД-РЕСЕТ 🌀</span>
+                    <span class="text-[10px] text-white/30 mt-1 uppercase italic font-bold">Цена: ${format(grandCost)}</span>
                 </button>`;
             }
         }
@@ -229,6 +257,7 @@
                 state.prestige += 1; state.c_prest_current *= 6;
                 state.shop.forEach(i => i.cost = i.baseCost);
                 showTab('game'); updateUI(); saveToServer();
+                tg.HapticFeedback.notificationOccurred('warning');
             }
         }
 
@@ -240,31 +269,37 @@
                 state.c_prest_current = 100000 * Math.pow(2.0, state.grand);
                 state.shop.forEach(i => i.cost = i.baseCost);
                 showTab('game'); updateUI(); saveToServer();
+                tg.HapticFeedback.notificationOccurred('error');
             }
         }
 
+        // --- ЛИДЕРЫ ---
         async function renderLeaders() {
             const list = document.getElementById('leader-list');
-            const res = await fetch('/api/leaderboard');
-            const leaders = await res.json();
-            list.innerHTML = leaders.map((l, i) => `
-                <div class="glass flex justify-between p-4 rounded-2xl items-center border-l-4 ${l.name === state.username ? 'border-blue-500' : 'border-transparent'}">
-                    <span class="text-xs font-bold font-mono italic">#${i+1} ${l.name}</span>
-                    <div class="text-right italic">
-                        <div class="text-xs font-black text-cyan-400">${format(l.balance)}</div>
-                        <div class="text-[8px] text-red-500 font-bold uppercase">Grand #${l.grand}</div>
+            list.innerHTML = '<div class="text-center py-10 opacity-20 italic">Загрузка...</div>';
+            try {
+                const res = await fetch('/api/leaderboard');
+                const leaders = await res.json();
+                list.innerHTML = leaders.map((l, i) => `
+                    <div class="glass flex justify-between p-4 rounded-2xl items-center border-l-4 ${l.name === state.username ? 'border-blue-500 bg-white/5' : 'border-transparent'}">
+                        <span class="text-xs font-bold font-mono italic">#${i+1} ${l.name}</span>
+                        <div class="text-right italic">
+                            <div class="text-xs font-black text-cyan-400">${format(l.balance)}</div>
+                            <div class="text-[8px] text-red-500 font-bold uppercase">Grand #${l.grand}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch(e) { list.innerHTML = 'Ошибка загрузки'; }
         }
 
-        function showTab(tab) {
+        function showTab(tab, event) {
             ['screen-game', 'screen-shop', 'screen-prestige', 'screen-leaders'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(`screen-${tab}`).classList.remove('hidden');
             const btns = document.querySelectorAll('.tab-btn');
             btns.forEach(b => b.classList.remove('tab-btn-active'));
-            event.currentTarget.classList.add('tab-btn-active');
+            if (event) event.currentTarget.classList.add('tab-btn-active');
             if (tab === 'leaders') renderLeaders();
+            updateUI();
         }
     </script>
 </body>
