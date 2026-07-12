@@ -8,37 +8,9 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ТВОЯ ГОТОВАЯ ССЫЛКА С ПАРОЛЕМ
-DB_URI = "postgresql://postgres:4FXrzTNyMn2gBAoL@db.rraadyircdxqizpbdihv.supabase.co:5432/postgres"
+# ВАЖНО: Добавь ?sslmode=require в конец ссылки, если её там нет
+DB_URI = "postgresql://postgres:4FXrzTNyMn2gBAoL@db.rraadyircdxqizpbdihv.supabase.co:5432/postgres?sslmode=require"
 
-def init_db():
-    try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id BIGINT PRIMARY KEY,
-                username TEXT,
-                coins DOUBLE PRECISION,
-                tap_power DOUBLE PRECISION,
-                multiplier DOUBLE PRECISION,
-                prestige INTEGER,
-                grand INTEGER,
-                c_prest_current DOUBLE PRECISION,
-                shop_data TEXT
-            )
-        ''')
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("База данных Supabase успешно подключена!")
-    except Exception as e:
-        print(f"Ошибка подключения к базе: {e}")
-
-# Инициализация при старте
-init_db()
-
-# Раздача картинок (убедись, что папка images лежит рядом с main.py)
 current_dir = os.path.dirname(os.path.realpath(__file__))
 images_path = os.path.join(current_dir, "images")
 if os.path.exists(images_path):
@@ -62,14 +34,15 @@ async def save_game(request: Request):
                 multiplier = EXCLUDED.multiplier, prestige = EXCLUDED.prestige, 
                 grand = EXCLUDED.grand, c_prest_current = EXCLUDED.c_prest_current, 
                 shop_data = EXCLUDED.shop_data
-        ''', (data['user_id'], data['username'], data['coins'], data['tapPower'],
-              data['multiplier'], data['prestige'], data['grand'],
+        ''', (data['user_id'], data['username'], data['coins'], data['tapPower'], 
+              data['multiplier'], data['prestige'], data['grand'], 
               data['c_prest_current'], json.dumps(data['shop'])))
         conn.commit()
         cursor.close()
         conn.close()
         return {"status": "ok"}
     except Exception as e:
+        print(f"SAVE ERROR: {e}") # Это появится в логах Render
         return {"status": "error", "message": str(e)}
 
 @app.get("/api/load")
@@ -88,7 +61,8 @@ async def load_game(user_id: int):
                 "shop": json.loads(row[8])
             }
         return None
-    except:
+    except Exception as e:
+        print(f"LOAD ERROR: {e}")
         return None
 
 @app.get("/api/leaderboard")
@@ -96,15 +70,16 @@ async def leaderboard():
     try:
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
+        # Выбираем ТОП 10 и превращаем монеты в целое число для красоты
         cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
-        return [{"name": r[0], "balance": r[1], "grand": r[2]} for r in rows]
-    except:
+        return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
+    except Exception as e:
+        print(f"LEADERBOARD ERROR: {e}")
         return []
 
 if __name__ == "__main__":
-    # Настройка порта для Render
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
