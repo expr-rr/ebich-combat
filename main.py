@@ -9,36 +9,16 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ИСПОЛЬЗУЙ ССЫЛКУ POOLER (ПОРТ 6543) ДЛЯ СТАБИЛЬНОСТИ
+# ВСТАВЬ СВОЮ ССЫЛКУ POOLER (ПОРТ 6543)
 DB_URI = "postgresql://postgres.rraadyircdxqizpbdihv:4FXrzTNyMn2gBAoL@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
 def get_hash(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def init_db():
-    conn = psycopg2.connect(DB_URI)
-    cursor = conn.cursor()
-    # Добавляем колонку password_hash
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password_hash TEXT,
-            coins DOUBLE PRECISION DEFAULT 0,
-            tap_power DOUBLE PRECISION DEFAULT 1,
-            multiplier DOUBLE PRECISION DEFAULT 1,
-            prestige INTEGER DEFAULT 0,
-            grand INTEGER DEFAULT 0,
-            c_prest_current DOUBLE PRECISION DEFAULT 100000,
-            shop_data TEXT
-        )
-    ''')
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-init_db()
-
-app.mount("/images", StaticFiles(directory="images"), name="images")
+# Раздача статики
+current_dir = os.path.dirname(os.path.realpath(__file__))
+if os.path.exists(os.path.join(current_dir, "images")):
+    app.mount("/images", StaticFiles(directory=os.path.join(current_dir, "images")), name="images")
 
 @app.get("/")
 async def read_index():
@@ -47,34 +27,30 @@ async def read_index():
 @app.post("/api/register")
 async def register(request: Request):
     data = await request.json()
-    name = data['username'].strip()
+    name = data['username'].strip().lower()
     pw = get_hash(data['password'])
-    
     try:
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (username, password_hash, shop_data) VALUES (%s, %s, %s)', 
-                       (name, pw, json.dumps([])))
+        cursor.execute('INSERT INTO users (username, password_hash) VALUES (%s, %s)', (name, pw))
         conn.commit()
         cursor.close()
         conn.close()
         return {"status": "success"}
-    except Exception as e:
-        return {"status": "error", "message": "Имя уже занято"}
+    except:
+        return {"status": "error", "message": "Ник уже занят"}
 
 @app.post("/api/login")
 async def login(request: Request):
     data = await request.json()
-    name = data['username'].strip()
+    name = data['username'].strip().lower()
     pw = get_hash(data['password'])
-    
     conn = psycopg2.connect(DB_URI)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM users WHERE username = %s AND password_hash = %s', (name, pw))
     row = cursor.fetchone()
     cursor.close()
     conn.close()
-    
     if row:
         return {
             "status": "success",
@@ -84,7 +60,7 @@ async def login(request: Request):
                 "c_prest_current": row[7], "shop": json.loads(row[8] if row[8] else "[]")
             }
         }
-    throw HTTPException(status_code=401, detail="Неверные данные")
+    return {"status": "error", "message": "Неверный ник или пароль"}
 
 @app.post("/api/save")
 async def save_game(request: Request):
