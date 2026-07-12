@@ -2,83 +2,117 @@ import psycopg2
 import os
 import json
 import uvicorn
-from fastapi import FastAPI, Request
+import hashlib
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ВАЖНО: Добавь ?sslmode=require в конец ссылки, если её там нет
-DB_URI = "postgresql://postgres:4FXrzTNyMn2gBAoL@db.rraadyircdxqizpbdihv.supabase.co:5432/postgres?sslmode=require"
+# ИСПОЛЬЗУЙ ССЫЛКУ POOLER (ПОРТ 6543) ДЛЯ СТАБИЛЬНОСТИ
+DB_URI = "postgresql://postgres.rraadyircdxqizpbdihv:4FXrzTNyMn2gBAoL@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-images_path = os.path.join(current_dir, "images")
-if os.path.exists(images_path):
-    app.mount("/images", StaticFiles(directory=images_path), name="images")
+def get_hash(password: str):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def init_db():
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    # Добавляем колонку password_hash
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT,
+            coins DOUBLE PRECISION DEFAULT 0,
+            tap_power DOUBLE PRECISION DEFAULT 1,
+            multiplier DOUBLE PRECISION DEFAULT 1,
+            prestige INTEGER DEFAULT 0,
+            grand INTEGER DEFAULT 0,
+            c_prest_current DOUBLE PRECISION DEFAULT 100000,
+            shop_data TEXT
+        )
+    ''')
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+init_db()
+
+app.mount("/images", StaticFiles(directory="images"), name="images")
 
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
 
-@app.post("/api/save")
-async def save_game(request: Request):
+@app.post("/api/register")
+async def register(request: Request):
+    data = await request.json()
+    name = data['username'].strip()
+    pw = get_hash(data['password'])
+    
     try:
-        data = await request.json()
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO users (id, username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO UPDATE SET
-                username = EXCLUDED.username, coins = EXCLUDED.coins, tap_power = EXCLUDED.tap_power,
-                multiplier = EXCLUDED.multiplier, prestige = EXCLUDED.prestige, 
-                grand = EXCLUDED.grand, c_prest_current = EXCLUDED.c_prest_current, 
-                shop_data = EXCLUDED.shop_data
-        ''', (data['user_id'], data['username'], data['coins'], data['tapPower'], 
-              data['multiplier'], data['prestige'], data['grand'], 
-              data['c_prest_current'], json.dumps(data['shop'])))
+        cursor.execute('INSERT INTO users (username, password_hash, shop_data) VALUES (%s, %s, %s)', 
+                       (name, pw, json.dumps([])))
         conn.commit()
         cursor.close()
         conn.close()
-        return {"status": "ok"}
+        return {"status": "success"}
     except Exception as e:
-        print(f"SAVE ERROR: {e}") # Это появится в логах Render
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "Имя уже занято"}
 
-@app.get("/api/load")
-async def load_game(user_id: int):
-    try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return {
-                "coins": row[2], "tapPower": row[3], "multiplier": row[4],
-                "prestige": row[5], "grand": row[6], "c_prest_current": row[7],
-                "shop": json.loads(row[8])
+@app.post("/api/login")
+async def login(request: Request):
+    data = await request.json()
+    name = data['username'].strip()
+    pw = get_hash(data['password'])
+    
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE username = %s AND password_hash = %s', (name, pw))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if row:
+        return {
+            "status": "success",
+            "data": {
+                "username": row[0], "coins": row[2], "tapPower": row[3],
+                "multiplier": row[4], "prestige": row[5], "grand": row[6],
+                "c_prest_current": row[7], "shop": json.loads(row[8] if row[8] else "[]")
             }
-        return None
-    except Exception as e:
-        print(f"LOAD ERROR: {e}")
-        return None
+        }
+    throw HTTPException(status_code=401, detail="Неверные данные")
+
+@app.post("/api/save")
+async def save_game(request: Request):
+    data = await request.json()
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE users SET 
+            coins = %s, tap_power = %s, multiplier = %s, 
+            prestige = %s, grand = %s, c_prest_current = %s, shop_data = %s
+        WHERE username = %s
+    ''', (data['coins'], data['tapPower'], data['multiplier'], 
+          data['prestige'], data['grand'], data['c_prest_current'], 
+          json.dumps(data['shop']), data['username']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"status": "ok"}
 
 @app.get("/api/leaderboard")
 async def leaderboard():
-    try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        # Выбираем ТОП 10 и превращаем монеты в целое число для красоты
-        cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
-    except Exception as e:
-        print(f"LEADERBOARD ERROR: {e}")
-        return []
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
