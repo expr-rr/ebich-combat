@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ТВОЯ ССЫЛКА ОТ NEON
+# ССЫЛКА NEON (убедись, что она твоя)
 DB_URI = "postgresql://neondb_owner:npg_bYj1tnSH8XBg@ep-billowing-pine-ahbzqlq1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def get_hash(password: str):
@@ -37,7 +37,6 @@ def init_db():
         cursor.execute("ALTER TABLE users ADD COLUMN last_active BIGINT")
     except:
         conn.rollback()
-    
     conn.commit()
     cursor.close()
     conn.close()
@@ -45,9 +44,8 @@ def init_db():
 init_db()
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-images_path = os.path.join(current_dir, "images")
-if os.path.exists(images_path):
-    app.mount("/images", StaticFiles(directory=images_path), name="images")
+if os.path.exists(os.path.join(current_dir, "images")):
+    app.mount("/images", StaticFiles(directory=os.path.join(current_dir, "images")), name="images")
 
 @app.get("/")
 async def read_index():
@@ -78,44 +76,30 @@ async def login(request: Request):
         data = await request.json()
         name = data['username'].strip().lower()
         pw = get_hash(data['password'])
-        
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
         cursor.execute('SELECT username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data, last_active FROM users WHERE username = %s AND password_hash = %s', (name, pw))
         row = cursor.fetchone()
-        
         if row:
             now = int(time.time())
             last_active = row[8] if row[8] is not None else now
-            
-            # --- ЛОГИКА АФК (УМЕНЬШЕНА В 5 РАЗ) ---
             diff = now - last_active
-            actual_seconds = min(diff, 36000) # Максимум 10 часов
-            
-            # Доход = (Клик * Множитель) * Сек / 10 (был делитель 2, стал 10)
+            actual_seconds = min(diff, 36000)
             tap_value = row[2] * row[3]
             afk_coins = (tap_value * actual_seconds) / 10 if actual_seconds > 0 else 0
-            
             cursor.execute('UPDATE users SET last_active = %s WHERE username = %s', (now, name))
             conn.commit()
-            
             return {
                 "status": "success",
                 "afk": {"coins": afk_coins, "seconds": actual_seconds},
                 "data": {
-                    "username": row[0], 
-                    "coins": row[1] + afk_coins, 
-                    "tapPower": row[2],
-                    "multiplier": row[3], 
-                    "prestige": row[4], 
-                    "grand": row[5],
-                    "c_prest_current": row[6], 
-                    "shop": json.loads(row[7] if row[7] else "[]")
+                    "username": row[0], "coins": row[1] + afk_coins, "tapPower": row[2],
+                    "multiplier": row[3], "prestige": row[4], "grand": row[5],
+                    "c_prest_current": row[6], "shop": json.loads(row[7] if row[7] else "[]")
                 }
             }
         return {"status": "error", "message": "Ошибка данных"}
-    except Exception as e:
-        print(f"LOGIN ERROR: {e}")
+    except:
         return {"status": "error", "message": "Тех. ошибка"}
     finally:
         if conn: conn.close()
@@ -149,9 +133,16 @@ async def leaderboard():
     try:
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
+        # Тянем больше данных: username, coins, grand, prestige, tap_power, multiplier
+        cursor.execute('SELECT username, coins, grand, prestige, tap_power, multiplier FROM users ORDER BY coins DESC LIMIT 10')
         rows = cursor.fetchall()
-        return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
+        return [{
+            "name": r[0], 
+            "balance": int(r[1]), 
+            "grand": r[2],
+            "prestige": r[3],
+            "click": r[4] * r[5] # Считаем доход за клик сразу
+        } for r in rows]
     except:
         return []
     finally:
