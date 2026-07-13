@@ -19,16 +19,16 @@
     <!-- МОДАЛКА АФК -->
     <div id="afk-modal" class="hidden fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-6 backdrop-blur-md">
         <div class="glass w-full max-w-sm p-8 rounded-[40px] text-center border-yellow-500/20">
-            <div class="text-6xl mb-4 text-yellow-500">💤</div>
+            <div class="text-6xl mb-4">💤</div>
             <h2 class="text-2xl font-black italic uppercase">С возвращением!</h2>
-            <div id="afk-value" class="text-4xl font-black text-yellow-400 py-6 italic tracking-tighter"></div>
+            <div id="afk-value" class="text-4xl font-black text-yellow-400 py-6 italic"></div>
             <button onclick="closeAfk()" class="w-full bg-yellow-500 text-black p-4 rounded-2xl font-black uppercase italic active:scale-95 transition-transform">Забрать</button>
         </div>
     </div>
 
     <!-- ЭКРАН ВХОДА -->
     <div id="auth-screen" class="fixed inset-0 z-[100] bg-[#02040a] flex flex-col items-center justify-center p-6 text-center">
-        <h1 class="text-4xl font-black italic mb-8 text-blue-500 uppercase">ЁБЫЧ КОМБАТ</h1>
+        <h1 class="text-4xl font-black italic mb-8 text-blue-500 uppercase italic">ЁБЫЧ КОМБАТ</h1>
         <div class="glass w-full max-w-sm p-8 rounded-[40px] space-y-4 shadow-2xl">
             <input id="auth-user" type="text" placeholder="Никнейм" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-center uppercase font-bold text-sm">
             <input id="auth-pass" type="password" placeholder="Пароль" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-center">
@@ -42,22 +42,24 @@
 
     <!-- ИГРОВОЙ КОНТЕНТ -->
     <div id="game-content" class="hidden h-screen flex flex-col p-4 pb-24">
-        <div class="grid grid-cols-4 gap-1 mb-6 h-16 text-center font-bold">
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase">Клик</div>
-                <div id="ui-tap" class="text-[9px] text-cyan-400 font-black tracking-tighter italic">0</div>
+        
+        <!-- СТАТИСТИКА (ИСПРАВЛЕНО) -->
+        <div class="grid grid-cols-4 gap-1 mb-6 h-16 text-center">
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-white/40 uppercase">Клик</div>
+                <div id="ui-tap" class="text-[9px] text-cyan-400">0</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Буст</div>
-                <div id="ui-mult" class="text-[9px] text-orange-400 font-black tracking-tighter italic">x1</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-white/40 uppercase">Буст</div>
+                <div id="ui-mult" class="text-[9px] text-orange-400">x1</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Престиж</div>
-                <div id="ui-prestige" class="text-[9px] text-purple-400 font-black tracking-tighter italic">0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-white/40 uppercase">Престиж</div>
+                <div id="ui-prestige" class="text-[9px] text-purple-400">0</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold tracking-tighter">Гранд</div>
-                <div id="ui-grand" class="text-[9px] text-red-400 font-black italic tracking-tighter">#0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-white/40 uppercase">Гранд</div>
+                <div id="ui-grand" class="text-[9px] text-red-400">#0</div>
             </div>
         </div>
 
@@ -69,6 +71,7 @@
             <div id="display-name" class="text-white/10 font-black tracking-[10px] text-[10px] uppercase italic">ИГРОК</div>
         </div>
 
+        <!-- ВКЛАДКИ -->
         <div id="screen-shop" class="hidden flex-1 overflow-y-auto px-2 space-y-3 pb-10">
             <h2 class="text-center text-xl font-black mb-4 uppercase italic">Рынок</h2>
             <div id="shop-list" class="space-y-3"></div>
@@ -80,12 +83,12 @@
             <div id="prestige-action-container" class="w-full"></div>
         </div>
 
-        <!-- ЛИДЕРЫ -->
         <div id="screen-leaders" class="hidden flex-1 flex flex-col px-2 overflow-hidden">
             <h2 class="text-center text-3xl font-black mb-4 uppercase text-cyan-400 italic">Лидеры</h2>
             <div id="leader-list" class="space-y-2 overflow-y-auto max-h-[65vh]"></div>
         </div>
 
+        <!-- МЕНЮ -->
         <div class="fixed bottom-6 left-0 right-0 flex justify-center z-50">
             <div class="glass rounded-full p-1 flex w-[95%] h-14">
                 <button onclick="showTab('game', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] tab-btn-active uppercase tracking-tighter">Игра</button>
@@ -111,63 +114,34 @@
             { id: 7, name: "х50К Клик",plus: 50000, baseCost: 50000000, cost: 50000000, growth: 4.0 }
         ];
 
-        let state = {
-            username: "", coins: 0, tapPower: 1, multiplier: 1, prestige: 0, grand: 0, c_prest_current: 100000,
-            shop: JSON.parse(JSON.stringify(defaultShop))
-        };
+        let state = { username: "", coins: 0, tapPower: 1, multiplier: 1, prestige: 0, grand: 0, c_prest_current: 100000, shop: JSON.parse(JSON.stringify(defaultShop)) };
 
         async function handleAuth(type) {
             const user = document.getElementById('auth-user').value.trim();
             const pass = document.getElementById('auth-pass').value.trim();
-            const error = document.getElementById('auth-error');
-
-            const res = await fetch(`/api/${type}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: user, password: pass })
-            });
+            const res = await fetch(`/api/${type}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: user, password: pass }) });
             const resData = await res.json();
-
             if (resData.status === 'success') {
                 if (type === 'login') {
                     state = {...state, ...resData.data};
-                    if (resData.data.shop && resData.data.shop.length > 0) {
-                        resData.data.shop.forEach((item, index) => {
-                            if (state.shop[index]) state.shop[index].cost = item.cost;
-                        });
-                    }
+                    if (resData.data.shop && resData.data.shop.length > 0) { resData.data.shop.forEach((item, index) => { if (state.shop[index]) state.shop[index].cost = item.cost; }); }
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('game-content').classList.remove('hidden');
                     document.getElementById('display-name').innerText = state.username;
                     isLoaded = true;
                     updateUI();
                     setInterval(saveToServer, 5000);
-
-                    if (resData.afk && resData.afk.coins > 1) {
-                        document.getElementById('afk-value').innerText = "+" + format(resData.afk.coins);
-                        document.getElementById('afk-modal').classList.remove('hidden');
-                    }
-                } else {
-                    error.innerText = resData.message;
-                    error.classList.remove('hidden');
-                    error.style.color = "#4ade80";
-                }
-            } else {
-                error.innerText = resData.message;
-                error.classList.remove('hidden');
-                error.style.color = "#ef4444";
-            }
+                    if (resData.afk && resData.afk.coins > 1) { document.getElementById('afk-value').innerText = "+" + format(resData.afk.coins); document.getElementById('afk-modal').classList.remove('hidden'); }
+                } else { alert(resData.message); }
+            } else { alert(resData.message); }
         }
 
         function closeAfk() { document.getElementById('afk-modal').classList.add('hidden'); tg.HapticFeedback.notificationOccurred('success'); }
 
-        async function saveToServer() {
-            if (!isLoaded) return;
-            fetch('/api/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(state) });
-        }
+        async function saveToServer() { if (!isLoaded) return; fetch('/api/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(state) }); }
 
         function format(val) {
-            const s = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc"];
+            const s = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
             if (val < 1000) return Math.floor(val);
             const exp = Math.floor(Math.log10(val) / 3);
             const index = Math.min(exp, s.length - 1);
@@ -180,13 +154,11 @@
             document.getElementById('ui-mult').innerText = 'x' + format(state.multiplier);
             document.getElementById('ui-prestige').innerText = state.prestige >= 7 ? "MAX" : state.prestige;
             document.getElementById('ui-grand').innerText = '#' + state.grand;
-            
             let p = state.prestige;
             let imgIdx = p === 0 ? 1 : p === 1 ? 2 : p === 2 ? 3 : p === 3 ? 5 : p === 4 ? 6 : p === 5 ? 7 : p === 6 ? 8 : 9;
             document.getElementById('hero-img').src = `/images/hero${imgIdx}.png`;
             document.getElementById('prestige-hero-img').src = `/images/hero${imgIdx}.png`;
-            renderShop();
-            renderPrestige();
+            renderShop(); renderPrestige();
         }
 
         function renderShop() {
@@ -205,13 +177,7 @@
 
         function buyUpgrade(id) {
             const item = state.shop.find(i => i.id === id);
-            if (state.coins >= item.cost) {
-                state.coins -= item.cost;
-                state.tapPower += item.plus;
-                item.cost *= item.growth;
-                updateUI();
-                saveToServer();
-            }
+            if (state.coins >= item.cost) { state.coins -= item.cost; state.tapPower += item.plus; item.cost *= item.growth; updateUI(); saveToServer(); }
         }
 
         function renderPrestige() {
@@ -220,8 +186,8 @@
             if (state.prestige < 7) {
                 const canAfford = state.coins >= state.c_prest_current;
                 container.innerHTML = `<button onclick="doPrestige()" class="w-full py-5 rounded-3xl glass border-purple-500/30 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
-                    <span class="text-purple-400 font-black tracking-widest text-lg italic uppercase">Престиж LVL ${state.prestige + 1}</span>
-                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold">Цена: ${format(state.c_prest_current)}</span>
+                    <span class="text-purple-400 font-black tracking-widest text-lg uppercase italic">Престиж LVL ${state.prestige + 1}</span>
+                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold tracking-tighter">Цена: ${format(state.c_prest_current)}</span>
                 </button>`;
             } else {
                 const grandCost = (state.c_prest_current / 6) * 2;
@@ -235,43 +201,36 @@
 
         function doPrestige() {
             if (state.coins >= state.c_prest_current) {
-                state.coins = 0; state.tapPower = 1; state.multiplier *= 2.0;
-                state.prestige += 1; state.c_prest_current *= 6.0;
-                state.shop = JSON.parse(JSON.stringify(defaultShop));
-                showTab('game', null); updateUI(); saveToServer();
+                state.coins = 0; state.tapPower = 1; state.multiplier *= 2.0; state.prestige += 1; state.c_prest_current *= 6.0;
+                state.shop = JSON.parse(JSON.stringify(defaultShop)); showTab('game', null); updateUI(); saveToServer();
             }
         }
 
         function doGrandReset() {
             const grandCost = (state.c_prest_current / 6) * 2;
             if (state.coins >= grandCost) {
-                state.grand += 1; state.multiplier = Math.pow(2.0, state.grand);
-                state.c_prest_current = 100000 * Math.pow(6.0, state.grand);
-                state.coins = 0; state.tapPower = 1; state.prestige = 0;
-                state.shop = JSON.parse(JSON.stringify(defaultShop));
+                state.grand += 1; state.multiplier = Math.pow(2.0, state.grand); state.c_prest_current = 100000 * Math.pow(6.0, state.grand);
+                state.coins = 0; state.tapPower = 1; state.prestige = 0; state.shop = JSON.parse(JSON.stringify(defaultShop));
                 showTab('game', null); updateUI(); saveToServer();
             }
         }
 
         async function renderLeaders() {
             const list = document.getElementById('leader-list');
-            list.innerHTML = '<div class="text-center py-10 opacity-20 italic">Загрузка топа...</div>';
-            try {
-                const res = await fetch('/api/leaderboard');
-                const leaders = await res.json();
-                list.innerHTML = leaders.map((l, i) => `
-                    <div class="glass flex flex-col p-4 rounded-2xl border-l-4 ${l.name === state.username ? 'border-blue-500 bg-white/5' : 'border-transparent'}">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-black font-mono italic"><span class="text-gray-500 mr-1">#${i+1}</span> ${l.name}</span>
-                            <span class="text-sm font-black text-cyan-400 italic">${format(l.balance)} 🪙</span>
-                        </div>
-                        <div class="flex justify-between text-[8px] uppercase font-bold tracking-widest text-white/40">
-                            <span>Престиж: <span class="text-purple-400">${l.prestige}</span> <small>(G#${l.grand})</small></span>
-                            <span>Клик: <span class="text-orange-400">${format(l.click)}</span></span>
-                        </div>
+            const res = await fetch('/api/leaderboard');
+            const leaders = await res.json();
+            list.innerHTML = leaders.map((l, i) => `
+                <div class="glass flex flex-col p-4 rounded-2xl border-l-4 ${l.name === state.username ? 'border-blue-500 bg-white/5' : 'border-transparent'}">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-black italic"><span class="text-gray-500 mr-1">#${i+1}</span> ${l.name}</span>
+                        <span class="text-sm font-black text-cyan-400 italic">${format(l.balance)} 🪙</span>
                     </div>
-                `).join('');
-            } catch(e) { list.innerHTML = 'Ошибка загрузки'; }
+                    <div class="flex justify-between text-[8px] uppercase font-bold tracking-widest text-white/40">
+                        <span>Престиж: <span class="text-purple-400">${l.prestige}</span> <small>(G#${l.grand})</small></span>
+                        <span>Клик: <span class="text-orange-400">${format(l.click)}</span></span>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function showTab(tab, event) {
