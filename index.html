@@ -33,15 +33,24 @@
     <!-- ИГРОВОЙ КОНТЕНТ -->
     <div id="game-content" class="hidden h-screen flex flex-col p-4 pb-24">
         
-        <!-- СТАТИСТИКА -->
-        <div class="grid grid-cols-4 gap-1 mb-6 h-16">
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold text-center">Клик</div>
-                <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter text-center">0</div>
+        <!-- СТАТИСТИКА (ИСПРАВЛЕНО) -->
+        <div class="grid grid-cols-4 gap-1 mb-6 h-16 text-center">
+            <div class="glass p-2 rounded-xl flex flex-col justify-center">
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Клик</div>
+                <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter">0</div>
             </div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-orange-400 text-[9px]" id="ui-mult">x1</div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-purple-400 text-[9px]" id="ui-prestige">0</div>
-            <div class="glass p-2 rounded-xl text-center flex flex-col justify-center font-bold text-red-400 text-[9px]" id="ui-grand">#0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center">
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Буст</div>
+                <div id="ui-mult" class="text-[9px] text-orange-400 font-bold tracking-tighter">x1</div>
+            </div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center">
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Престиж</div>
+                <div id="ui-prestige" class="text-[9px] text-purple-400 font-bold tracking-tighter">0</div>
+            </div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center">
+                <div class="text-[7px] text-gray-500 uppercase font-bold">Гранд</div>
+                <div id="ui-grand" class="text-[9px] text-red-400 font-bold tracking-tighter">#0</div>
+            </div>
         </div>
 
         <!-- ЭКРАНЫ -->
@@ -215,7 +224,7 @@
                 const canAfford = state.coins >= state.c_prest_current;
                 container.innerHTML = `<button onclick="doPrestige()" class="w-full py-5 rounded-3xl glass border-purple-500/30 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
                     <span class="text-purple-400 font-black tracking-widest text-lg italic uppercase">Престиж LVL ${state.prestige + 1}</span>
-                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold">Цена: ${format(state.c_prest_current)}</span>
+                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold text-center">Цена: ${format(state.c_prest_current)}</span>
                 </button>`;
             } else {
                 const grandCost = (state.c_prest_current / 6) * 2;
@@ -231,11 +240,11 @@
             if (state.coins >= state.c_prest_current) {
                 state.coins = 0; 
                 state.tapPower = 1; 
-                state.multiplier *= 2.0; // Доход удваивается
+                state.multiplier *= 2.0; 
                 state.prestige += 1; 
-                state.c_prest_current *= 6.0; // Цена растет в 6 раз
+                state.c_prest_current *= 6.0; 
                 state.shop = JSON.parse(JSON.stringify(defaultShop));
-                showTab('game'); 
+                showTab('game', null); 
                 updateUI(); 
                 saveToServer();
                 tg.HapticFeedback.notificationOccurred('warning');
@@ -246,19 +255,13 @@
             const grandCost = (state.c_prest_current / 6) * 2;
             if (state.coins >= grandCost) {
                 state.grand += 1; 
-                
-                // --- МНОЖИТЕЛЬ ДОХОДА х2 (относительно базы) ---
                 state.multiplier = Math.pow(2.0, state.grand); 
-                
-                // --- МНОЖИТЕЛЬ ЦЕНЫ х6 (базовая стоимость новой эры) ---
                 state.c_prest_current = 100000 * Math.pow(6.0, state.grand); 
-
                 state.coins = 0; 
                 state.tapPower = 1; 
                 state.prestige = 0;
                 state.shop = JSON.parse(JSON.stringify(defaultShop));
-                
-                showTab('game'); 
+                showTab('game', null); 
                 updateUI(); 
                 saveToServer();
                 tg.HapticFeedback.notificationOccurred('error');
@@ -287,10 +290,13 @@
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
-            document.getElementById(`screen-${tab}`).classList.remove('hidden');
+            const target = document.getElementById(`screen-${tab}`);
+            if (target) target.classList.remove('hidden');
+            
             const btns = document.querySelectorAll('.tab-btn');
             btns.forEach(b => b.classList.remove('tab-btn-active'));
             if (event) event.currentTarget.classList.add('tab-btn-active');
+            
             if (tab === 'leaders') renderLeaders();
             updateUI();
         }
