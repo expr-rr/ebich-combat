@@ -19,7 +19,6 @@ def get_hash(password: str):
 def init_db():
     conn = psycopg2.connect(DB_URI)
     cursor = conn.cursor()
-    # Создаем таблицу, если её нет
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -34,11 +33,10 @@ def init_db():
             last_active BIGINT
         )
     ''')
-    # ПРОВЕРКА И ДОБАВЛЕНИЕ КОЛОНКИ last_active (на случай если таблица уже была)
     try:
-        cursor.execute("ALTER TABLE users ADD COLUMN last_active BIGINT DEFAULT %s", (int(time.time()),))
+        cursor.execute("ALTER TABLE users ADD COLUMN last_active BIGINT")
     except:
-        conn.rollback() # Если колонка уже есть, просто идем дальше
+        conn.rollback()
     
     conn.commit()
     cursor.close()
@@ -47,8 +45,9 @@ def init_db():
 init_db()
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-if os.path.exists(os.path.join(current_dir, "images")):
-    app.mount("/images", StaticFiles(directory=os.path.join(current_dir, "images")), name="images")
+images_path = os.path.join(current_dir, "images")
+if os.path.exists(images_path):
+    app.mount("/images", StaticFiles(directory=images_path), name="images")
 
 @app.get("/")
 async def read_index():
@@ -66,9 +65,9 @@ async def register(request: Request):
         cursor.execute('INSERT INTO users (username, password_hash, last_active) VALUES (%s, %s, %s)', 
                        (name, pw, int(time.time())))
         conn.commit()
-        return {"status": "success", "message": "Аккаунт создан! Жми ВОЙТИ"}
-    except Exception as e:
-        return {"status": "error", "message": "Ник занят или ошибка базы"}
+        return {"status": "success", "message": "Готово! Жми ВОЙТИ"}
+    except:
+        return {"status": "error", "message": "Ник занят"}
     finally:
         if conn: conn.close()
 
@@ -87,30 +86,37 @@ async def login(request: Request):
         
         if row:
             now = int(time.time())
-            # Если last_active пустой (для старых юзеров), берем текущее время
-            last_active = row[8] if row[8] else now
+            last_active = row[8] if row[8] is not None else now
             
-            # Расчет АФК
-            seconds_offline = min(now - last_active, 36000)
-            afk_coins = (row[2] * row[3] * seconds_offline) / 2
+            # --- ЛОГИКА АФК (УМЕНЬШЕНА В 5 РАЗ) ---
+            diff = now - last_active
+            actual_seconds = min(diff, 36000) # Максимум 10 часов
             
-            # Обновляем время активности при входе
+            # Доход = (Клик * Множитель) * Сек / 10 (был делитель 2, стал 10)
+            tap_value = row[2] * row[3]
+            afk_coins = (tap_value * actual_seconds) / 10 if actual_seconds > 0 else 0
+            
             cursor.execute('UPDATE users SET last_active = %s WHERE username = %s', (now, name))
             conn.commit()
             
             return {
                 "status": "success",
-                "afk": {"coins": afk_coins, "seconds": seconds_offline},
+                "afk": {"coins": afk_coins, "seconds": actual_seconds},
                 "data": {
-                    "username": row[0], "coins": row[1] + afk_coins, "tapPower": row[2],
-                    "multiplier": row[3], "prestige": row[4], "grand": row[5],
-                    "c_prest_current": row[6], "shop": json.loads(row[7] if row[7] else "[]")
+                    "username": row[0], 
+                    "coins": row[1] + afk_coins, 
+                    "tapPower": row[2],
+                    "multiplier": row[3], 
+                    "prestige": row[4], 
+                    "grand": row[5],
+                    "c_prest_current": row[6], 
+                    "shop": json.loads(row[7] if row[7] else "[]")
                 }
             }
-        return {"status": "error", "message": "Неверный ник или пароль"}
+        return {"status": "error", "message": "Ошибка данных"}
     except Exception as e:
         print(f"LOGIN ERROR: {e}")
-        return {"status": "error", "message": f"Ошибка сервера: {e}"}
+        return {"status": "error", "message": "Тех. ошибка"}
     finally:
         if conn: conn.close()
 
