@@ -3,23 +3,22 @@ import os
 import json
 import uvicorn
 import hashlib
+import time
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ТВОЯ ССЫЛКА ОТ NEON.TECH
-DB_URI = "postgresql://neondb_owner:npg_bYj1tnSH8XBg@ep-billowing-pine-ahbzqlq1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+DB_URI = "ТВОЯ_ССЫЛКА_ОТ_NEON_ИЛИ_SUPABASE"
 
 def get_hash(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Настройка раздачи картинок
+# Раздача статики
 current_dir = os.path.dirname(os.path.realpath(__file__))
-images_path = os.path.join(current_dir, "images")
-if os.path.exists(images_path):
-    app.mount("/images", StaticFiles(directory=images_path), name="images")
+if os.path.exists(os.path.join(current_dir, "images")):
+    app.mount("/images", StaticFiles(directory=os.path.join(current_dir, "images")), name="images")
 
 @app.get("/")
 async def read_index():
@@ -27,94 +26,91 @@ async def read_index():
 
 @app.post("/api/register")
 async def register(request: Request):
-    conn = None
     try:
         data = await request.json()
         name = data['username'].strip().lower()
-        if not name: return {"status": "error", "message": "Введите ник"}
         pw = get_hash(data['password'])
-        
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        
-        # Проверяем ник
-        cursor.execute('SELECT username FROM users WHERE username = %s', (name,))
-        if cursor.fetchone():
-            return {"status": "error", "message": "Ник уже занят"}
-
-        cursor.execute('INSERT INTO users (username, password_hash) VALUES (%s, %s)', (name, pw))
+        # При регистрации записываем текущее время как last_active
+        cursor.execute('INSERT INTO users (username, password_hash, last_active) VALUES (%s, %s, %s)', 
+                       (name, pw, int(time.time())))
         conn.commit()
-        return {"status": "success", "message": "Аккаунт создан! Жми ВОЙТИ"}
-    except Exception as e:
-        print(f"REG ERROR: {e}")
-        return {"status": "error", "message": "Ошибка базы"}
-    finally:
-        if conn: conn.close()
+        cursor.close()
+        conn.close()
+        return {"status": "success", "message": "Аккаунт создан!"}
+    except:
+        return {"status": "error", "message": "Ник занят"}
 
 @app.post("/api/login")
 async def login(request: Request):
-    conn = None
-    try:
-        data = await request.json()
-        name = data['username'].strip().lower()
-        pw = get_hash(data['password'])
+    data = await request.json()
+    name = data['username'].strip().lower()
+    pw = get_hash(data['password'])
+    
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    cursor.execute('SELECT username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data, last_active FROM users WHERE username = %s AND password_hash = %s', (name, pw))
+    row = cursor.fetchone()
+    
+    if row:
+        now = int(time.time())
+        last_active = row[8] if row[8] else now
         
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        cursor.execute('SELECT username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data FROM users WHERE username = %s AND password_hash = %s', (name, pw))
-        row = cursor.fetchone()
+        # --- ЛОГИКА АФК ДОХОДА ---
+        seconds_offline = now - last_active
+        if seconds_offline > 36000: seconds_offline = 36000 # Ограничение 10 часов
         
-        if row:
-            return {
-                "status": "success",
-                "data": {
-                    "username": row[0], "coins": row[1], "tapPower": row[2],
-                    "multiplier": row[3], "prestige": row[4], "grand": row[5],
-                    "c_prest_current": row[6], "shop": json.loads(row[7] if row[7] else "[]")
-                }
+        # Формула: (Клик * Множитель) * Секунды / 2
+        tap_value = row[2] * row[3]
+        afk_coins = (tap_value * seconds_offline) / 2
+        
+        # Сразу обновляем время в базе, чтобы не начислить дважды
+        cursor.execute('UPDATE users SET last_active = %s WHERE username = %s', (now, name))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "afk": {"coins": afk_coins, "seconds": seconds_offline},
+            "data": {
+                "username": row[0], "coins": row[1] + afk_coins, "tapPower": row[2],
+                "multiplier": row[3], "prestige": row[4], "grand": row[5],
+                "c_prest_current": row[6], "shop": json.loads(row[7] if row[7] else "[]")
             }
-        return {"status": "error", "message": "Неверный ник или пароль"}
-    except Exception as e:
-        print(f"LOGIN ERROR: {e}")
-        return {"status": "error", "message": "Ошибка входа"}
-    finally:
-        if conn: conn.close()
+        }
+    return {"status": "error", "message": "Неверные данные"}
 
 @app.post("/api/save")
 async def save_game(request: Request):
-    conn = None
-    try:
-        data = await request.json()
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users SET 
-                coins = %s, tap_power = %s, multiplier = %s, 
-                prestige = %s, grand = %s, c_prest_current = %s, shop_data = %s
-            WHERE username = %s
-        ''', (data['coins'], data['tapPower'], data['multiplier'], 
-              data['prestige'], data['grand'], data['c_prest_current'], 
-              json.dumps(data['shop']), data['username']))
-        conn.commit()
-    except Exception as e:
-        print(f"SAVE ERROR: {e}")
-    finally:
-        if conn: conn.close()
+    data = await request.json()
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    # При сохранении обновляем last_active
+    cursor.execute('''
+        UPDATE users SET 
+            coins = %s, tap_power = %s, multiplier = %s, 
+            prestige = %s, grand = %s, c_prest_current = %s, 
+            shop_data = %s, last_active = %s
+        WHERE username = %s
+    ''', (data['coins'], data['tapPower'], data['multiplier'], 
+          data['prestige'], data['grand'], data['c_prest_current'], 
+          json.dumps(data['shop']), int(time.time()), data['username']))
+    conn.commit()
+    cursor.close()
+    conn.close()
     return {"status": "ok"}
 
 @app.get("/api/leaderboard")
 async def leaderboard():
-    conn = None
-    try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
-        rows = cursor.fetchall()
-        return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
-    except:
-        return []
-    finally:
-        if conn: conn.close()
+    conn = psycopg2.connect(DB_URI)
+    cursor = conn.cursor()
+    cursor.execute('SELECT username, coins, grand FROM users ORDER BY coins DESC LIMIT 10')
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [{"name": r[0], "balance": int(r[1]), "grand": r[2]} for r in rows]
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
