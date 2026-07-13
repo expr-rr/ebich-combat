@@ -16,11 +16,22 @@
 </head>
 <body>
 
+    <!-- ОКНО АФК ДОХОДА -->
+    <div id="afk-modal" class="hidden fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-6 text-center backdrop-blur-md">
+        <div class="glass w-full max-w-sm p-8 rounded-[40px] border-yellow-500/30 space-y-4">
+            <div class="text-6xl mb-4">💤</div>
+            <h2 class="text-2xl font-black italic uppercase">Пока ты спал</h2>
+            <p class="text-white/40 text-xs">Твой персонаж не бездельничал!</p>
+            <div class="text-4xl font-black text-yellow-400 py-4" id="afk-value">+0 🪙</div>
+            <button onclick="closeAfk()" class="w-full bg-yellow-500 text-black p-4 rounded-2xl font-black uppercase active:scale-95 transition-all">Забрать</button>
+        </div>
+    </div>
+
     <!-- ЭКРАН ВХОДА -->
     <div id="auth-screen" class="fixed inset-0 z-[100] bg-[#02040a] flex flex-col items-center justify-center p-6 text-center">
         <h1 class="text-4xl font-black italic mb-8 tracking-tighter text-blue-500 uppercase">ЁБЫЧ КОМБАТ</h1>
         <div class="glass w-full max-w-sm p-8 rounded-[40px] space-y-4 shadow-2xl border-blue-500/20">
-            <input id="auth-user" type="text" placeholder="Никнейм" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none text-center">
+            <input id="auth-user" type="text" placeholder="Никнейм" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none text-center uppercase text-sm font-bold">
             <input id="auth-pass" type="password" placeholder="Пароль" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:border-blue-500 outline-none text-center">
             <div class="pt-4 space-y-3">
                 <button onclick="handleAuth('login')" class="w-full bg-blue-600 p-4 rounded-2xl font-black active:scale-95 transition-all uppercase italic">Войти</button>
@@ -32,28 +43,26 @@
 
     <!-- ИГРОВОЙ КОНТЕНТ -->
     <div id="game-content" class="hidden h-screen flex flex-col p-4 pb-24">
-        
-        <!-- СТАТИСТИКА (ИСПРАВЛЕНО) -->
+        <!-- СТАТИСТИКА -->
         <div class="grid grid-cols-4 gap-1 mb-6 h-16 text-center">
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Клик</div>
-                <div id="ui-tap" class="text-[9px] text-cyan-400 font-bold tracking-tighter">0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-gray-500 uppercase">Клик</div>
+                <div id="ui-tap" class="text-[9px] text-cyan-400">0</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Буст</div>
-                <div id="ui-mult" class="text-[9px] text-orange-400 font-bold tracking-tighter">x1</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-gray-500 uppercase">Буст</div>
+                <div id="ui-mult" class="text-[9px] text-orange-400">x1</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Престиж</div>
-                <div id="ui-prestige" class="text-[9px] text-purple-400 font-bold tracking-tighter">0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-gray-500 uppercase">Престиж</div>
+                <div id="ui-prestige" class="text-[9px] text-purple-400">0</div>
             </div>
-            <div class="glass p-2 rounded-xl flex flex-col justify-center">
-                <div class="text-[7px] text-gray-500 uppercase font-bold">Гранд</div>
-                <div id="ui-grand" class="text-[9px] text-red-400 font-bold tracking-tighter">#0</div>
+            <div class="glass p-2 rounded-xl flex flex-col justify-center font-bold">
+                <div class="text-[7px] text-gray-500 uppercase">Гранд</div>
+                <div id="ui-grand" class="text-[9px] text-red-400">#0</div>
             </div>
         </div>
 
-        <!-- ЭКРАНЫ -->
         <div id="screen-game" class="flex-1 flex flex-col items-center justify-between py-8">
             <div id="balance" class="text-5xl font-black italic">0</div>
             <div id="hero-btn" class="w-64 h-64 rounded-full glass border-4 border-white/10 flex items-center justify-center overflow-hidden active-scale shadow-[0_0_50px_rgba(59,130,246,0.2)]">
@@ -62,29 +71,30 @@
             <div id="display-name" class="text-white/10 font-black tracking-[10px] text-[10px] uppercase italic">ИГРОК</div>
         </div>
 
+        <!-- ВКЛАДКИ -->
         <div id="screen-shop" class="hidden flex-1 overflow-y-auto px-2 space-y-3 pb-10">
             <h2 class="text-center text-xl font-black mb-4 uppercase italic">Рынок</h2>
             <div id="shop-list" class="space-y-3"></div>
         </div>
 
         <div id="screen-prestige" class="hidden flex-1 flex flex-col items-center px-6 pt-4">
-            <h2 class="text-center text-xl font-black mb-4 uppercase text-purple-500 italic">Престиж</h2>
+            <h2 class="text-center text-xl font-black mb-4 uppercase text-purple-500 italic font-black text-3xl">Престиж</h2>
             <img id="prestige-hero-img" src="/images/hero1.png" class="w-40 h-40 rounded-full border-4 border-purple-500 mb-8 shadow-xl shadow-purple-500/20">
             <div id="prestige-action-container" class="w-full"></div>
         </div>
 
         <div id="screen-leaders" class="hidden flex-1 flex flex-col px-2 overflow-y-auto">
-            <h2 class="text-center text-xl font-black mb-4 uppercase text-cyan-400 italic font-black">Лидеры</h2>
+            <h2 class="text-center text-xl font-black mb-4 uppercase text-cyan-400 italic font-black text-3xl">Лидеры</h2>
             <div id="leader-list" class="space-y-2"></div>
         </div>
 
         <!-- МЕНЮ -->
         <div class="fixed bottom-6 left-0 right-0 flex justify-center z-50">
             <div class="glass rounded-full p-1 flex w-[95%] h-14">
-                <button onclick="showTab('game', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] tab-btn-active uppercase">Игра</button>
-                <button onclick="showTab('shop', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Рынок</button>
-                <button onclick="showTab('prestige', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Престиж</button>
-                <button onclick="showTab('leaders', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase">Лидеры</button>
+                <button onclick="showTab('game', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] tab-btn-active uppercase tracking-tighter">Игра</button>
+                <button onclick="showTab('shop', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase tracking-tighter">Рынок</button>
+                <button onclick="showTab('prestige', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase tracking-tighter">Престиж</button>
+                <button onclick="showTab('leaders', event)" class="tab-btn flex-1 rounded-full font-black text-[9px] uppercase tracking-tighter">Лидеры</button>
             </div>
         </div>
     </div>
@@ -145,6 +155,12 @@
                     isLoaded = true;
                     updateUI();
                     setInterval(saveToServer, 5000);
+
+                    // --- ПОКАЗ АФК ДОХОДА ---
+                    if (resData.afk && resData.afk.coins > 1) {
+                        document.getElementById('afk-value').innerText = "+" + format(resData.afk.coins) + " 🪙";
+                        document.getElementById('afk-modal').classList.remove('hidden');
+                    }
                 } else {
                     error.innerText = resData.message;
                     error.classList.remove('hidden');
@@ -155,6 +171,11 @@
                 error.classList.remove('hidden');
                 error.style.color = "#ef4444";
             }
+        }
+
+        function closeAfk() {
+            document.getElementById('afk-modal').classList.add('hidden');
+            tg.HapticFeedback.notificationOccurred('success');
         }
 
         async function saveToServer() {
@@ -198,7 +219,7 @@
                 <div class="glass flex justify-between items-center p-4 rounded-2xl">
                     <div>
                         <div class="font-bold text-sm text-white">${item.name}</div>
-                        <div class="text-[10px] text-yellow-500 font-mono italic">${format(item.cost)} 🪙</div>
+                        <div class="text-[10px] text-yellow-500 font-mono italic font-bold text-center">${format(item.cost)} 🪙</div>
                     </div>
                     <button onclick="buyUpgrade(${item.id})" class="px-5 py-2 rounded-xl text-[10px] font-black italic ${state.coins >= item.cost ? 'bg-white text-black' : 'bg-white/5 text-white/20'}" ${state.coins < item.cost ? 'disabled' : ''}>UP</button>
                 </div>
@@ -224,13 +245,13 @@
                 const canAfford = state.coins >= state.c_prest_current;
                 container.innerHTML = `<button onclick="doPrestige()" class="w-full py-5 rounded-3xl glass border-purple-500/30 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
                     <span class="text-purple-400 font-black tracking-widest text-lg italic uppercase">Престиж LVL ${state.prestige + 1}</span>
-                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold text-center">Цена: ${format(state.c_prest_current)}</span>
+                    <span class="text-[10px] text-gray-400 mt-1 uppercase italic font-bold">Цена: ${format(state.c_prest_current)}</span>
                 </button>`;
             } else {
                 const grandCost = (state.c_prest_current / 6) * 2;
                 const canAfford = state.coins >= grandCost;
                 container.innerHTML = `<button onclick="doGrandReset()" class="w-full py-5 rounded-3xl glass border-red-500/50 flex flex-col items-center active-scale ${canAfford ? '' : 'opacity-40'}" ${!canAfford ? 'disabled' : ''}>
-                    <span class="text-red-500 font-black tracking-widest text-lg italic uppercase">ГРАНД-РЕСЕТ 🌀</span>
+                    <span class="text-red-500 font-black tracking-widest text-lg italic uppercase font-black text-3xl">ГРАНД-РЕСЕТ 🌀</span>
                     <span class="text-[10px] text-white/30 mt-1 uppercase italic font-bold">Цена: ${format(grandCost)}</span>
                 </button>`;
             }
