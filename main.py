@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ССЫЛКА NEON (убедись, что она твоя)
+# ССЫЛКА NEON
 DB_URI = "postgresql://neondb_owner:npg_bYj1tnSH8XBg@ep-billowing-pine-ahbzqlq1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def get_hash(password: str):
@@ -80,15 +80,21 @@ async def login(request: Request):
         cursor = conn.cursor()
         cursor.execute('SELECT username, coins, tap_power, multiplier, prestige, grand, c_prest_current, shop_data, last_active FROM users WHERE username = %s AND password_hash = %s', (name, pw))
         row = cursor.fetchone()
+        
         if row:
             now = int(time.time())
             last_active = row[8] if row[8] is not None else now
+            
+            # --- ФОРМУЛА АФК / 5 ---
             diff = now - last_active
-            actual_seconds = min(diff, 36000)
-            tap_value = row[2] * row[3]
-            afk_coins = (tap_value * actual_seconds) / 10 if actual_seconds > 0 else 0
+            actual_seconds = min(diff, 36000) # Лимит 10 часов
+            
+            tap_val = row[2] * row[3] # Клик * Множитель
+            afk_coins = (tap_val * actual_seconds) / 5 if actual_seconds > 0 else 0
+            
             cursor.execute('UPDATE users SET last_active = %s WHERE username = %s', (now, name))
             conn.commit()
+            
             return {
                 "status": "success",
                 "afk": {"coins": afk_coins, "seconds": actual_seconds},
@@ -121,8 +127,7 @@ async def save_game(request: Request):
               data['prestige'], data['grand'], data['c_prest_current'], 
               json.dumps(data['shop']), int(time.time()), data['username']))
         conn.commit()
-    except Exception as e:
-        print(f"SAVE ERROR: {e}")
+    except: pass
     finally:
         if conn: conn.close()
     return {"status": "ok"}
@@ -133,18 +138,10 @@ async def leaderboard():
     try:
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        # Тянем больше данных: username, coins, grand, prestige, tap_power, multiplier
         cursor.execute('SELECT username, coins, grand, prestige, tap_power, multiplier FROM users ORDER BY coins DESC LIMIT 10')
         rows = cursor.fetchall()
-        return [{
-            "name": r[0], 
-            "balance": int(r[1]), 
-            "grand": r[2],
-            "prestige": r[3],
-            "click": r[4] * r[5] # Считаем доход за клик сразу
-        } for r in rows]
-    except:
-        return []
+        return [{"name": r[0], "balance": int(r[1]), "grand": r[2], "prestige": r[3], "click": r[4]*r[5]} for r in rows]
+    except: return []
     finally:
         if conn: conn.close()
 
