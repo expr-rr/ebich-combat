@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# ССЫЛКА NEON (Твоя рабочая ссылка)
+# ТВОЯ ССЫЛКА NEON
 DB_URI = "postgresql://neondb_owner:npg_bYj1tnSH8XBg@ep-billowing-pine-ahbzqlq1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def get_hash(password: str):
@@ -29,7 +29,7 @@ def init_db():
             pending_coins DOUBLE PRECISION DEFAULT 0
         )
     ''')
-    try: cursor.execute("ALTER TABLE users ADD COLUMN pending_coins DOUBLE PRECISION DEFAULT 0")
+    try: cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_coins DOUBLE PRECISION DEFAULT 0")
     except: conn.rollback()
     conn.commit()
     cursor.close()
@@ -52,11 +52,11 @@ async def register(request: Request):
         pw = get_hash(data['password'])
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (username, password_hash, last_active) VALUES (%s, %s, %s)', (name, pw, int(time.time())))
+        cursor.execute('INSERT INTO users (username, password_hash, last_active, pending_coins) VALUES (%s, %s, %s, 0)', (name, pw, int(time.time())))
         conn.commit()
         cursor.close()
         conn.close()
-        return {"status": "success", "message": "Аккаунт создан! Жми ВОЙТИ"}
+        return {"status": "success", "message": "Аккаунт создан!"}
     except: return {"status": "error", "message": "Ник занят"}
 
 @app.post("/api/login")
@@ -92,28 +92,43 @@ async def save_game(request: Request):
     name = data['username']
     conn = psycopg2.connect(DB_URI)
     cursor = conn.cursor()
+    
+    # Сначала забираем все, что админ "начислил" в базе
     cursor.execute('SELECT pending_coins FROM users WHERE username = %s', (name,))
     p_row = cursor.fetchone()
     pending = p_row[0] if p_row and p_row[0] else 0
+    
+    # Итоговый баланс = то, что прислал клиент + то, что висит в ожидании от админа
     new_balance = max(0, float(data['coins']) + pending)
+    
+    # Сохраняем и ОБЯЗАТЕЛЬНО обнуляем pending_coins
     cursor.execute('''
         UPDATE users SET coins = %s, tap_power = %s, multiplier = %s, prestige = %s, grand = %s, 
         c_prest_current = %s, shop_data = %s, last_active = %s, pending_coins = 0 WHERE username = %s
     ''', (new_balance, data['tapPower'], data['multiplier'], data['prestige'], data['grand'], 
           data['c_prest_current'], json.dumps(data['shop']), int(time.time()), name))
+    
     conn.commit()
     cursor.close()
     conn.close()
+    
+    # Возвращаем клиенту финальное число, чтобы он обновил экран
     return {"status": "ok", "new_balance": new_balance}
 
 @app.post("/api/admin/edit_balance")
 async def admin_edit_balance(request: Request):
     data = await request.json()
     if data.get('admin_username') != 'admin': raise HTTPException(status_code=403)
-    val = float(data.get('amount', 0)) if data.get('action') == 'add' else -float(data.get('amount', 0))
+    
+    target = data.get('target_username')
+    amount = float(data.get('amount', 0))
+    action = data.get('action')
+    # Если add -> +сумма, если remove -> -сумма
+    val = amount if action == 'add' else -amount
+    
     conn = psycopg2.connect(DB_URI)
     cursor = conn.cursor()
-    cursor.execute('UPDATE users SET pending_coins = pending_coins + %s WHERE username = %s', (val, data.get('target_username')))
+    cursor.execute('UPDATE users SET pending_coins = pending_coins + %s WHERE username = %s', (val, target))
     conn.commit()
     cursor.close()
     conn.close()
